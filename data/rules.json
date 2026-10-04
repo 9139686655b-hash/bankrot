@@ -1,0 +1,204 @@
+{
+  "version": "2026.09.28-draft.1",
+  "checkedAt": "2026-09-28",
+  "reviewStatus": "draft",
+  "reviewNote": "Черновик базы правил. Каждый параметр с needsReview=true должен быть сверен юристом с действующей редакцией 127-ФЗ / 229-ФЗ / НК РФ до релиза.",
+  "params": {
+    "outOfCourt.minDebt": {
+      "value": 25000,
+      "unit": "RUB",
+      "title": "Внесудебное банкротство: минимальная сумма долга",
+      "validFrom": "2023-11-03",
+      "source": "ст. 223.2 127-ФЗ",
+      "verifiedAt": null,
+      "needsReview": true
+    },
+    "outOfCourt.maxDebt": {
+      "value": 1000000,
+      "unit": "RUB",
+      "title": "Внесудебное банкротство: максимальная сумма долга",
+      "validFrom": "2023-11-03",
+      "source": "ст. 223.2 127-ФЗ",
+      "verifiedAt": null,
+      "needsReview": true
+    },
+    "outOfCourt.durationMonths": {
+      "value": 6,
+      "unit": "months",
+      "title": "Срок внесудебной процедуры",
+      "validFrom": "2020-09-01",
+      "source": "ст. 223.6 127-ФЗ",
+      "verifiedAt": null,
+      "needsReview": true
+    },
+    "outOfCourt.enforcementOpenYearsSocial": {
+      "value": 1,
+      "unit": "years",
+      "title": "Внесудебное: минимальный срок открытого ИП для пенсионеров и получателей пособия на ребёнка",
+      "validFrom": "2023-11-03",
+      "source": "ст. 223.2 127-ФЗ",
+      "verifiedAt": null,
+      "needsReview": true
+    },
+    "outOfCourt.enforcementOpenYearsGeneral": {
+      "value": 7,
+      "unit": "years",
+      "title": "Внесудебное: срок ИП, после которого возможна процедура при остатке долга не менее доли от исходного",
+      "validFrom": "2023-11-03",
+      "source": "ст. 223.2 127-ФЗ",
+      "verifiedAt": null,
+      "needsReview": true
+    },
+    "outOfCourt.remainingDebtShare": {
+      "value": 0.5,
+      "unit": "share",
+      "title": "Внесудебное: минимальная доля непогашенного долга (для основания «ИП 7 лет»)",
+      "validFrom": "2023-11-03",
+      "source": "ст. 223.2 127-ФЗ",
+      "verifiedAt": null,
+      "needsReview": true
+    },
+    "court.mandatoryFilingThreshold": {
+      "value": 500000,
+      "unit": "RUB",
+      "title": "Сумма долга, при которой подача заявления становится обязанностью",
+      "validFrom": "2015-10-01",
+      "source": "п. 1 ст. 213.4 127-ФЗ",
+      "verifiedAt": null,
+      "needsReview": true
+    },
+    "court.mandatoryFilingDeadlineWorkdays": {
+      "value": 30,
+      "unit": "workdays",
+      "title": "Срок для обязательной подачи заявления",
+      "validFrom": "2015-10-01",
+      "source": "п. 1 ст. 213.4 127-ФЗ",
+      "verifiedAt": null,
+      "needsReview": true
+    },
+    "court.managerDeposit": {
+      "value": 25000,
+      "unit": "RUB",
+      "title": "Депозит на вознаграждение финансового управляющего",
+      "validFrom": "2015-10-01",
+      "source": "п. 3 ст. 20.6, п. 4 ст. 213.4 127-ФЗ",
+      "verifiedAt": null,
+      "needsReview": true
+    },
+    "court.stateDuty": {
+      "value": null,
+      "unit": "RUB",
+      "title": "Госпошлина за заявление гражданина о признании банкротом",
+      "validFrom": null,
+      "source": "подп. 5 п. 1 ст. 333.21 НК РФ",
+      "verifiedAt": null,
+      "needsReview": true,
+      "note": "Размер менялся с 2024 года. Значение намеренно не заполнено — внести после проверки действующей редакции НК РФ."
+    },
+    "court.realizationMonths": {
+      "value": 6,
+      "unit": "months",
+      "title": "Срок реализации имущества (может продлеваться судом)",
+      "validFrom": "2015-10-01",
+      "source": "п. 2 ст. 213.24 127-ФЗ",
+      "verifiedAt": null,
+      "needsReview": true
+    },
+    "court.restructuringPlanMaxYears": {
+      "value": 3,
+      "unit": "years",
+      "title": "Максимальный срок плана реструктуризации долгов",
+      "validFrom": "2015-10-01",
+      "source": "п. 2 ст. 213.14 127-ФЗ",
+      "verifiedAt": null,
+      "needsReview": true
+    },
+    "court.transactionsLookbackYears": {
+      "value": 3,
+      "unit": "years",
+      "title": "Период, за который могут оспорить сделки",
+      "validFrom": "2015-10-01",
+      "source": "ст. 213.32, ст. 61.2 127-ФЗ",
+      "verifiedAt": null,
+      "needsReview": true
+    },
+    "court.dealDisclosureThreshold": {
+      "value": 300000,
+      "unit": "RUB",
+      "title": "Сумма сделок за 3 года, сведения о которых прикладываются к заявлению",
+      "validFrom": "2015-10-01",
+      "source": "п. 3 ст. 213.4 127-ФЗ",
+      "verifiedAt": null,
+      "needsReview": true
+    },
+    "court.egripExtractMaxAgeWorkdays": {
+      "value": 5,
+      "unit": "workdays",
+      "title": "Выписка о статусе ИП — не старше",
+      "validFrom": "2015-10-01",
+      "source": "п. 3 ст. 213.4 127-ФЗ",
+      "verifiedAt": null,
+      "needsReview": true
+    },
+    "consequences.creditDisclosureYears": {
+      "value": 5,
+      "unit": "years",
+      "title": "Срок, в течение которого нужно сообщать о банкротстве при получении кредита",
+      "validFrom": "2015-10-01",
+      "source": "п. 1 ст. 213.30 127-ФЗ",
+      "verifiedAt": null,
+      "needsReview": true
+    },
+    "consequences.refileBanYears": {
+      "value": 5,
+      "unit": "years",
+      "title": "Срок, в течение которого нельзя повторно подать заявление о своём банкротстве",
+      "validFrom": "2015-10-01",
+      "source": "п. 2 ст. 213.30 127-ФЗ",
+      "verifiedAt": null,
+      "needsReview": true
+    },
+    "consequences.managementBanYears": {
+      "value": 3,
+      "unit": "years",
+      "title": "Запрет занимать должности в органах управления юрлица",
+      "validFrom": "2015-10-01",
+      "source": "п. 3 ст. 213.30 127-ФЗ",
+      "verifiedAt": null,
+      "needsReview": true
+    },
+    "ai.dailyQuestionLimit": {
+      "value": 20,
+      "unit": "count",
+      "title": "Лимит вопросов ИИ-консультанту в сутки",
+      "validFrom": "2026-09-28",
+      "source": "продуктовый параметр",
+      "verifiedAt": "2026-09-28",
+      "needsReview": false
+    },
+    "product.price": {
+      "value": 499,
+      "unit": "RUB",
+      "title": "Цена полного доступа",
+      "validFrom": "2026-09-28",
+      "source": "продуктовый параметр",
+      "verifiedAt": "2026-09-28",
+      "needsReview": false
+    }
+  },
+  "nonDischargeable": [
+    { "id": "alimony", "title": "Алименты", "source": "п. 5 ст. 213.28 127-ФЗ" },
+    { "id": "damages", "title": "Возмещение вреда жизни и здоровью", "source": "п. 5 ст. 213.28 127-ФЗ" },
+    { "id": "wages", "title": "Зарплата и выходное пособие перед работниками (если вы были работодателем)", "source": "п. 5 ст. 213.28 127-ФЗ" },
+    { "id": "moral", "title": "Возмещение морального вреда", "source": "п. 5 ст. 213.28 127-ФЗ" },
+    { "id": "subsidiary", "title": "Субсидиарная ответственность и убытки как руководителя / участника компании", "source": "п. 5 ст. 213.28 127-ФЗ" },
+    { "id": "criminal", "title": "Долги, связанные с преступлением или мошенничеством", "source": "п. 4, 6 ст. 213.28 127-ФЗ" }
+  ],
+  "badFaithGrounds": [
+    "Скрытие или уничтожение имущества",
+    "Предоставление ложных или неполных сведений суду и управляющему",
+    "Незаконные действия при получении кредита (например, ложные сведения о доходе)",
+    "Уклонение от сотрудничества с финансовым управляющим"
+  ],
+  "badFaithSource": "п. 4 ст. 213.28 127-ФЗ"
+}
