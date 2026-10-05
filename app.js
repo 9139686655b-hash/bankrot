@@ -70,6 +70,13 @@ async function copyText(text) {
   toast('Текст скопирован');
 }
 
+/** Логотип и подпись ООО «Арбитръ» со ссылкой на сайт. */
+const brand = () => `
+  <div class="brand">
+    <img src="arbitr-logo.png" alt="Логотип ООО «Арбитръ»" width="44" height="64">
+    <p>ООО «Арбитръ» — <button class="link" data-partner-site>arbitr55.pro</button></p>
+  </div>`;
+
 const progressBar = (v) => `<div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(v * 100)}"><i style="width:${v * 100}%"></i></div>`;
 const rulesLine = () => `<p class="muted center">Правила актуальны на ${dateRu(R.checkedAt)}</p>`;
 
@@ -104,6 +111,7 @@ function welcome() {
   if (i < slides.length) {
     const [title, points, note] = slides[i];
     return `
+      ${i === 0 ? brand() : ''}
       <p class="muted">Шаг ${i + 1} из ${slides.length + 1}</p>${progressBar((i + 1) / (slides.length + 1))}
       <h1>${title}</h1>
       <div class="card"><ul class="plain">${points.map((p) => `<li>${h(p)}</li>`).join('')}</ul></div>
@@ -144,6 +152,7 @@ function home() {
   const steps = stepsFor(path());
   const stepsDone = steps.filter((s) => stepDone(s.id)).length;
   return `
+    ${brand()}
     <h1>Банкротство без паники</h1>
     ${d ? `
       <button class="card accent" data-go="#/result">
@@ -632,6 +641,12 @@ app.addEventListener('click', async (e) => {
   const d = el.dataset;
   if ('back' in d) return back();
   if (d.go) return go(d.go);
+
+  if ('partnerSite' in d) {
+    if (inMax) bridge(() => WA.openLink(PARTNER.site));
+    else window.open(PARTNER.site, '_blank', 'noopener');
+    return;
+  }
 
   // онбординг
   if (d.ob !== undefined) { S.ob = Number(d.ob); return route(); }
