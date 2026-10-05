@@ -7,8 +7,9 @@
   <title>Сам себе банкротчик</title>
   <link rel="icon" href="icon.png">
   <link rel="stylesheet" href="styles.css">
-  <!-- MAX Bridge: доступ к кнопке «Назад», хранилищу, «Поделиться». Вне MAX просто не используется. -->
-  <script src="https://st.max.ru/js/max-web-app.js"></script>
+  <!-- MAX Bridge: кнопка «Назад», хранилище, «Поделиться». Грузится параллельно: если сервер MAX
+       не отвечает, приложение не зависает, а работает как обычный сайт (см. waitForBridge в app.js). -->
+  <script src="https://st.max.ru/js/max-web-app.js" async id="max-bridge"></script>
 </head>
 <body>
   <main id="app" aria-live="polite">

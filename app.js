@@ -22,8 +22,8 @@ const levelText = { green: 'Всё понятно', yellow: 'Есть нюанс
 const statusText = { none: 'Нет', ordered: 'Заказал(а)', received: 'Получил(а) / в наличии' };
 
 const app = document.getElementById('app');
-const WA = window.WebApp;
-const inMax = !!WA && !!WA.platform && WA.platform !== 'web';
+let WA = null; // window.WebApp из MAX Bridge — появляется после загрузки скрипта
+let inMax = false;
 let R; // база правил
 let S; // состояние пользователя
 
@@ -798,9 +798,25 @@ app.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.id ==
 
 // ---------------- Запуск ----------------
 
+/** Ждём MAX Bridge не дольше timeout мс: медленный сервер MAX не должен вешать приложение. */
+function waitForBridge(timeout = 3000) {
+  return new Promise((resolve) => {
+    if (window.WebApp) return resolve();
+    const done = () => { clearTimeout(t); resolve(); };
+    const t = setTimeout(resolve, timeout);
+    const tag = document.getElementById('max-bridge');
+    tag?.addEventListener('load', done);
+    tag?.addEventListener('error', done);
+  });
+}
+
 (async () => {
   try {
-    [R, S] = await Promise.all([loadRules(), loadState()]);
+    const rulesP = loadRules();
+    await waitForBridge();
+    WA = window.WebApp ?? null;
+    inMax = !!WA && !!WA.platform && WA.platform !== 'web';
+    [R, S] = await Promise.all([rulesP, loadState()]);
   } catch (err) {
     app.innerHTML = `<h1>Не удалось загрузить</h1><p>Проверьте интернет и откройте приложение снова.</p><p class="muted">${h(err.message)}</p>`;
     return;
