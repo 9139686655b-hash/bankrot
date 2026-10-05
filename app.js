@@ -19,7 +19,7 @@ const TERM_NAMES = {
   restructuring: 'Реструктуризация', realization: 'Реализация имущества', efrsb: 'ЕФРСБ', deposit: 'Депозит',
 };
 const levelText = { green: 'Всё понятно', yellow: 'Есть нюансы', red: 'Сложный случай' };
-const statusText = { none: 'Нет', ordered: 'Заказал(а)', received: 'Получил(а)' };
+const statusText = { none: 'Нет', ordered: 'Заказал(а)', received: 'Получил(а) / в наличии' };
 
 const app = document.getElementById('app');
 const WA = window.WebApp;
@@ -278,7 +278,7 @@ function docs() {
   const done = items.filter((i) => docStatus(i.id) === 'received').length;
   return `
     <h1>Документы</h1>
-    <p class="muted">Получено ${done} из ${items.length}. Нажмите на документ, чтобы узнать, где его взять, и отметить статус.</p>
+    <p class="muted">В наличии: ${done} из ${items.length}. Нажмите на документ, чтобы узнать, где его взять, и отметить статус.</p>
     ${progressBar(items.length ? done / items.length : 0)}
     ${items.map((i) => {
       const st = docStatus(i.id);
