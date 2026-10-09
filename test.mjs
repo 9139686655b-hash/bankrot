@@ -41,7 +41,8 @@ assert.equal(v.property[0].kindText, 'Транспортное средство'
 // Склонение ФИО, сумма прописью, уполномоченный орган
 const pm = { ...p, lastName: 'Иванова', firstName: 'Мария', middleName: 'Петровна' };
 const appText = render(R.templates.find((t) => t.id === 'court_application'), buildView(pm, R)).map((b) => b.text ?? '').join('\n');
-assert.ok(appText.includes('Признать Иванову Марию Петровну несостоятельным'), 'винительный падеж');
+assert.ok(appText.includes('Признать Иванову Марию Петровну несостоятельной (банкротом)'), 'винительный падеж и род');
+assert.ok(render(R.templates.find((t) => t.id === 'court_application'), buildView(p, R)).some((b) => (b.text ?? '').includes('Признать Тестова Теста Тестовича несостоятельным') || (b.text ?? '').includes('несостоятельным (банкротом) и ввести')), 'мужской род');
 assert.ok(appText.includes('заявление Ивановой Марии Петровны'), 'родительный падеж');
 assert.ok(appText.includes('(сто тысяч рублей 00 копеек)'), 'сумма прописью');
 assert.ok(appText.includes('Уполномоченный орган: УФНС России по Омской области'));

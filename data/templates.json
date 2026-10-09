@@ -119,11 +119,11 @@
         },
         {
           "t": "p",
-          "text": "1. Признать обоснованным заявление {{debtor.fullNameGen}} о признании несостоятельным (банкротом)."
+          "text": "1. Признать обоснованным заявление {{debtor.fullNameGen}} о признании {{debtor.insolvent}} (банкротом)."
         },
         {
           "t": "p",
-          "text": "2. {{#request.isRealization}}Признать {{debtor.fullNameAcc}} несостоятельным (банкротом) и ввести процедуру реализации имущества гражданина.{{/request.isRealization}}{{#request.isRestructuring}}Ввести в отношении {{debtor.fullNameGen}} процедуру реструктуризации долгов гражданина.{{/request.isRestructuring}}"
+          "text": "2. {{#request.isRealization}}Признать {{debtor.fullNameAcc}} {{debtor.insolvent}} (банкротом) и ввести процедуру реализации имущества гражданина.{{/request.isRealization}}{{#request.isRestructuring}}Ввести в отношении {{debtor.fullNameGen}} процедуру реструктуризации долгов гражданина.{{/request.isRestructuring}}"
         },
         {
           "t": "p",

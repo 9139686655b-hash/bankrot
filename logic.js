@@ -249,6 +249,14 @@ const kindText = { realty: 'Недвижимость', car: 'Транспорт�
 const ownText = { individual: 'индивидуальная', joint: 'общая совместная', shared: 'общая долевая' };
 const maritalText = { single: 'в браке не состою', married: 'состою в браке', divorced: 'брак расторгнут', widowed: 'вдова (вдовец)' };
 
+/** Пол по отчеству (а без него — по фамилии): нужен для «несостоятельным / несостоятельной». */
+export function isFemale(p) {
+  const mid = String(p.middleName ?? '').trim().toLowerCase();
+  if (/(вна|чна|кызы|гызы)$/.test(mid)) return true;
+  if (/(ич|оглы|улы|уулу)$/.test(mid)) return false;
+  return /(ова|ева|ёва|ина|ына|ая|ская|цкая)$/.test(String(p.lastName ?? '').trim().toLowerCase());
+}
+
 /** ФИО в нужном падеже: 'genitive' (кого?) или 'accusative' (кого? — винительный). */
 export function declineName(p, gcase) {
   const last = String(p.lastName ?? '').trim(), first = String(p.firstName ?? '').trim(), middle = String(p.middleName ?? '').trim();
@@ -370,6 +378,7 @@ export function buildView(p, R, path = 'court', docs = {}, answers = {}) {
       fullName,
       fullNameGen: declineName(p, 'genitive') || fullName,
       fullNameAcc: declineName(p, 'accusative') || fullName,
+      insolvent: isFemale(p) ? 'несостоятельной' : 'несостоятельным',
       shortName: p.lastName ? `${p.lastName} ${ini(p.firstName)}${ini(p.middleName)}` : '',
       lastName: p.lastName, firstName: p.firstName, middleName: p.middleName || '—', prevNames: p.prevNames || 'не изменялись',
       birthDate: p.birthDate, birthPlace: p.birthPlace, inn: digits(p.inn), snils: p.snils, passport,
