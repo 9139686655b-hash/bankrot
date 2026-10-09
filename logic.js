@@ -1,6 +1,7 @@
 // Логика мини-приложения: диагностика, чек-лист, подсудность, проверка полей, документы, ответы на вопросы.
 // Все суммы, сроки и тексты — в data/*.json, здесь только правила их применения.
 import Mustache from './vendor/mustache.mjs';
+import petrovich from './vendor/petrovich.mjs';
 
 Mustache.escape = (t) => t; // экранирование делаем сами при выводе в HTML
 
@@ -243,18 +244,86 @@ export function stepErrors(step, p) {
 
 // ---------------- Документы ----------------
 
-const typeText = { bank: 'Кредитное обязательство (банк)', mfo: 'Договор займа (МФО)', zhkh: 'Оплата жилищно-коммунальных услуг', tax: 'Обязательные платежи (налоги)', private: 'Договор займа (физическое лицо)', other: 'Иное денежное обязательство' };
-const kindText = { realty: 'Недвижимость', car: 'Транспортное средство', land: 'Земельный участок', share: 'Доля, ценные бумаги', other: 'Иное имущество' };
+const typeText = { bank: 'Кредитный договор', mfo: 'Договор займа', zhkh: 'Оплата жилищно-коммунальных услуг', tax: 'Обязательный платёж', private: 'Договор займа', other: 'Иное денежное обязательство' };
+const kindText = { realty: 'Недвижимость', car: 'Транспортное средство', land: 'Земельный участок', share: 'Доля в организации', securities: 'Ценные бумаги', valuables: 'Ценное имущество', other: 'Иное имущество' };
+const ownText = { individual: 'индивидуальная', joint: 'общая совместная', shared: 'общая долевая' };
 const maritalText = { single: 'в браке не состою', married: 'состою в браке', divorced: 'брак расторгнут', widowed: 'вдова (вдовец)' };
+
+/** ФИО в нужном падеже: 'genitive' (кого?) или 'accusative' (кого? — винительный). */
+export function declineName(p, gcase) {
+  const last = String(p.lastName ?? '').trim(), first = String(p.firstName ?? '').trim(), middle = String(p.middleName ?? '').trim();
+  if (!last) return '';
+  try {
+    const r = petrovich({ last, first: first || undefined, middle: middle || undefined }, gcase);
+    return [r.last, r.first, r.middle].filter(Boolean).join(' ');
+  } catch {
+    return [last, first, middle].filter(Boolean).join(' '); // не склонилось — оставляем как есть
+  }
+}
+
+// ---------------- Сумма прописью ----------------
+
+const ONES = [['', 'один', 'два', 'три', 'четыре', 'пять', 'шесть', 'семь', 'восемь', 'девять'], ['', 'одна', 'две', 'три', 'четыре', 'пять', 'шесть', 'семь', 'восемь', 'девять']];
+const TEENS = ['десять', 'одиннадцать', 'двенадцать', 'тринадцать', 'четырнадцать', 'пятнадцать', 'шестнадцать', 'семнадцать', 'восемнадцать', 'девятнадцать'];
+const TENS = ['', '', 'двадцать', 'тридцать', 'сорок', 'пятьдесят', 'шестьдесят', 'семьдесят', 'восемьдесят', 'девяносто'];
+const HUNDREDS = ['', 'сто', 'двести', 'триста', 'четыреста', 'пятьсот', 'шестьсот', 'семьсот', 'восемьсот', 'девятьсот'];
+const plural = (n, [one, few, many]) => { const a = n % 10, b = n % 100; return a === 1 && b !== 11 ? one : a >= 2 && a <= 4 && (b < 12 || b > 14) ? few : many; };
+
+function triad(n, fem) {
+  const w = [HUNDREDS[Math.floor(n / 100)]];
+  const t = n % 100;
+  if (t >= 10 && t < 20) w.push(TEENS[t - 10]);
+  else w.push(TENS[Math.floor(t / 10)], ONES[fem ? 1 : 0][t % 10]);
+  return w.filter(Boolean).join(' ');
+}
+
+/** 780000.5 → «семьсот восемьдесят тысяч рублей 50 копеек» */
+export function rubWords(sum) {
+  const rubles = Math.floor(sum + 1e-9);
+  const kop = Math.round((sum - rubles) * 100);
+  const groups = [[1e9, false, ['миллиард', 'миллиарда', 'миллиардов']], [1e6, false, ['миллион', 'миллиона', 'миллионов']], [1e3, true, ['тысяча', 'тысячи', 'тысяч']]];
+  let rest = rubles; const words = [];
+  for (const [base, fem, forms] of groups) {
+    const g = Math.floor(rest / base); rest %= base;
+    if (g) words.push(triad(g, fem), plural(g, forms));
+  }
+  if (rest || !words.length) words.push(rest ? triad(rest, false) : 'ноль');
+  return `${words.join(' ')} ${plural(rubles, ['рубль', 'рубля', 'рублей'])} ${String(kop).padStart(2, '0')} ${plural(kop, ['копейка', 'копейки', 'копеек'])}`;
+}
+
+/** Уполномоченный орган (УФНС) по суду; для СПб и Ленобласти — по адресу регистрации. */
+export function authorityFor(court, regAddress = '') {
+  if (!court) return '';
+  if (court.id === 'spb' && /ленинградск/i.test(regAddress)) return 'УФНС России по Ленинградской области';
+  return court.ufns ?? '';
+}
+
+/** Субъект РФ по суду; для судов на два субъекта — по адресу регистрации. */
+export function subjectFor(court, regAddress = '') {
+  if (!court) return '';
+  if (court.id === 'spb') return /ленинградск/i.test(regAddress) ? 'Ленинградская область' : 'Санкт-Петербург';
+  if (court.id === 'arkhangelsk') return /ненецк/i.test(regAddress) ? 'Ненецкий автономный округ' : 'Архангельская область';
+  return court.region;
+}
 
 /** Данные для шаблонов. docs — отметки чек-листа, чтобы перечислить полученные документы в приложениях. */
 export function buildView(p, R, path = 'court', docs = {}, answers = {}) {
   const court = R.courts.find((c) => c.id === p.courtId);
-  const cr = (p.creditors ?? []).map((c, i) => ({
-    ...c, n: i + 1, typeText: typeText[c.type] ?? typeText.other,
-    principalText: rub(amount(c.principal)), interestText: rub(amount(c.interest)),
-    penaltiesText: rub(amount(c.penalties)), totalText: rub(amount(c.principal) + amount(c.interest) + amount(c.penalties)),
-  }));
+  const crAll = (p.creditors ?? []).map((c) => {
+    const debt = amount(c.principal) + amount(c.interest);
+    const total = debt + amount(c.penalties);
+    return {
+      ...c, typeText: typeText[c.type] ?? typeText.other,
+      address: c.address || '—',
+      principalText: rub(amount(c.principal)), interestText: rub(amount(c.interest)), penaltiesText: rub(amount(c.penalties)),
+      debtText: rub(debt), totalText: rub(total),
+    };
+  });
+  // Нумерация «1.1, 1.2…» как в форме по приказу Минэкономразвития № 530
+  const numbered = (list, prefix) => list.map((c, i) => ({ ...c, n: `${prefix}${i + 1}` }));
+  const isBiz = (c) => c.business === 'yes';
+  const money = (biz) => numbered(crAll.filter((c) => c.type !== 'tax' && isBiz(c) === biz), '1.');
+  const taxes = (biz) => numbered(crAll.filter((c) => c.type === 'tax' && isBiz(c) === biz), '2.');
   const sum = (k) => (p.creditors ?? []).reduce((s, c) => s + amount(c[k]), 0);
   const total = sum('principal') + sum('interest') + sum('penalties');
   const ini = (s) => (s ? `${s[0]}.` : '');
@@ -263,20 +332,67 @@ export function buildView(p, R, path = 'court', docs = {}, answers = {}) {
   const incomes = (p.incomes ?? []).filter((r) => r.year || r.amount).map((r) => `${r.year} г. — ${r.source || 'доход'} — ${rub(amount(r.amount))} руб.`);
   const received = checklist(R, path, answers).filter((d) => (docs[d.id]?.status ?? (docs[d.id] === true ? 'received' : 'none')) === 'received').map((d) => d.title);
   const generated = path === 'court' ? ['Список кредиторов и должников гражданина', 'Опись имущества гражданина'] : [];
+  const fullName = [p.lastName, p.firstName, p.middleName].filter(Boolean).join(' ');
+
+  // Опись имущества по разделам формы
+  const prop = (p.property ?? []).map((x) => ({
+    ...x,
+    kindText: kindText[x.kind] ?? kindText.other,
+    ownText: ownText[x.ownership] ?? '—',
+    addressText: x.address || '—', areaText: x.area || '—', vinText: x.vin || '—',
+    basisText: [x.basis, x.value ? `${rub(amount(x.value))} руб.` : ''].filter(Boolean).join(', ') || '—',
+    valueText: x.value ? `${rub(amount(x.value))} руб.` : '—',
+    pledgeText: x.pledge === 'yes' ? `да${x.pledgee ? `, ${x.pledgee}` : ''}` : 'нет',
+    description: x.description || '—',
+    capitalText: x.capital ? `${rub(amount(x.capital))}` : '—', shareText: x.shareSize || '—', basisOnly: x.basis || '—',
+    issuerText: x.issuer || '—', nominalText: x.nominal ? rub(amount(x.nominal)) : '—', qtyText: x.qty || '—',
+  }));
+  const section = (kinds, prefix) => numbered(prop.filter((x) => kinds.includes(x.kind)), prefix);
+  const valuables = section(['valuables', 'other'], '6.');
+  const cashRow = amount(p.cash) ? [{ n: '6.0', kindText: 'Наличные денежные средства', description: 'Наличные денежные средства', valueText: `${rub(amount(p.cash))} руб.`, addressText: p.liveAddress || p.regAddress || '—', pledgeText: 'нет' }] : [];
+
+  // Блок «Информация о гражданине» в формах по приказу Минэкономразвития № 530
+  const personRows = [
+    ['Фамилия', p.lastName], ['Имя', p.firstName], ['Отчество (при наличии)', p.middleName],
+    ['Прежние фамилии, имена, отчества', p.prevNames || 'не изменялись'],
+    ['Дата рождения', p.birthDate], ['Место рождения', p.birthPlace], ['СНИЛС', p.snils], ['ИНН', digits(p.inn)],
+    ['Документ, удостоверяющий личность', 'паспорт гражданина Российской Федерации'],
+    ['Серия и номер', p.passportSeries || p.passportNumber ? `${digits(p.passportSeries)} ${digits(p.passportNumber)}` : ''],
+    ['Адрес регистрации по месту жительства: субъект Российской Федерации', subjectFor(court, p.regAddress)],
+    ['Адрес регистрации полностью', p.regAddress],
+  ].map(([label, value]) => ({ label, value: String(value ?? '').trim() || '—' }));
+
   return {
+    personRows,
     court: { name: court?.court ?? '', address: court?.address ?? '' },
+    authority: authorityFor(court, p.regAddress),
     debtor: {
-      fullName: [p.lastName, p.firstName, p.middleName].filter(Boolean).join(' '),
+      fullName,
+      fullNameGen: declineName(p, 'genitive') || fullName,
+      fullNameAcc: declineName(p, 'accusative') || fullName,
       shortName: p.lastName ? `${p.lastName} ${ini(p.firstName)}${ini(p.middleName)}` : '',
+      lastName: p.lastName, firstName: p.firstName, middleName: p.middleName || '—', prevNames: p.prevNames || 'не изменялись',
       birthDate: p.birthDate, birthPlace: p.birthPlace, inn: digits(p.inn), snils: p.snils, passport,
+      passportNo: p.passportSeries || p.passportNumber ? `${digits(p.passportSeries)} ${digits(p.passportNumber)}` : '',
+      region: subjectFor(court, p.regAddress),
       regAddress: p.regAddress, liveAddress: p.liveAddress && p.liveAddress !== p.regAddress ? p.liveAddress : '',
       phone: p.phone, email: p.email,
     },
-    debt: { totalText: total ? rub(total) : '', principalText: rub(sum('principal')), interestText: rub(sum('interest')), penaltiesText: rub(sum('penalties')) },
-    creditors: cr,
-    debtorsOfDebtor: [],
-    property: (p.property ?? []).map((x, i) => ({ ...x, n: i + 1, kindText: kindText[x.kind] ?? kindText.other, valueText: x.value ? rub(amount(x.value)) : '—', pledge: x.pledge === 'yes' })),
-    accounts: (p.accounts ?? []).map((x, i) => ({ ...x, n: i + 1, balanceText: rub(amount(x.balance)) })),
+    debt: {
+      totalText: total ? rub(total) : '', totalWords: total ? rubWords(total) : '',
+      principalText: rub(sum('principal')), interestText: rub(sum('interest')), penaltiesText: rub(sum('penalties')),
+    },
+    creditors: numbered(crAll, ''),
+    creditorsMoney: money(false), creditorsTax: taxes(false),
+    creditorsBizMoney: money(true), creditorsBizTax: taxes(true),
+    debtorsOfDebtor: numbered((p.receivables ?? []).map((x) => ({ ...x, address: x.address || '—', basis: x.basis || '—', amountText: rub(amount(x.amount)) })), '1.'),
+    realty: section(['realty', 'land'], '1.'),
+    vehicles: section(['car'], '2.'),
+    shares: section(['share'], '4.'),
+    securities: section(['securities'], '5.'),
+    valuables: [...cashRow, ...valuables].map((x, i) => ({ ...x, n: `6.${i + 1}` })),
+    property: numbered(prop, ''),
+    accounts: numbered((p.accounts ?? []).map((x) => ({ ...x, bankText: x.bank || '—', typeText: x.accountType || 'текущий, рубль', openedText: x.opened || '—', balanceText: rub(amount(x.balance)) })), '3.'),
     deals: { hasAny: (p.deals ?? []).length > 0 },
     income: { text: [p.employment, ...incomes].filter(Boolean).join('; ') || 'сведения приведены в приложенных справках' },
     family: {

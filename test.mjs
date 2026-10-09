@@ -38,4 +38,25 @@ assert.equal(freshness(egrip, { status: 'received', at: '2026-09-01' }, R, new D
 const v = buildView({ ...p, property: [{ kind: 'car', description: 'Lada', value: '200000', pledge: 'no' }] }, R, 'court', { passport: { status: 'received' } }, {});
 assert.ok(v.attachments.some((a) => a.title.startsWith('Паспорт')));
 assert.equal(v.property[0].kindText, 'Транспортное средство');
+// Склонение ФИО, сумма прописью, уполномоченный орган
+const pm = { ...p, lastName: 'Иванова', firstName: 'Мария', middleName: 'Петровна' };
+const appText = render(R.templates.find((t) => t.id === 'court_application'), buildView(pm, R)).map((b) => b.text ?? '').join('\n');
+assert.ok(appText.includes('Признать Иванову Марию Петровну несостоятельным'), 'винительный падеж');
+assert.ok(appText.includes('заявление Ивановой Марии Петровны'), 'родительный падеж');
+assert.ok(appText.includes('(сто тысяч рублей 00 копеек)'), 'сумма прописью');
+assert.ok(appText.includes('Уполномоченный орган: УФНС России по Омской области'));
+// Официальные формы: разделы и налоги отдельно
+const pf = { ...p, creditors: [...p.creditors, { type: 'tax', name: 'Транспортный налог', principal: '5000', penalties: '300' }],
+  property: [{ kind: 'car', description: 'Lada Granta, 2012', vin: 'XTA000', value: '200000', pledge: 'no' }, { kind: 'realty', description: 'Квартира', area: '45', ownership: 'joint', pledge: 'yes', pledgee: 'ПАО Банк' }],
+  accounts: [{ bank: 'ПАО Сбербанк', balance: '50' }], cash: '19000', receivables: [{ name: 'Петров П.П.', amount: '10000' }] };
+const vf = buildView(pf, R);
+assert.equal(vf.creditorsMoney.length, 1); assert.equal(vf.creditorsTax.length, 1); assert.equal(vf.creditorsTax[0].n, '2.1');
+assert.equal(vf.vehicles[0].n, '2.1'); assert.equal(vf.realty[0].ownText, 'общая совместная'); assert.equal(vf.realty[0].pledgeText, 'да, ПАО Банк');
+assert.equal(vf.accounts[0].n, '3.1'); assert.equal(vf.valuables[0].description, 'Наличные денежные средства');
+const cl = render(R.templates.find((t) => t.id === 'creditors_list'), vf);
+assert.ok(cl.some((b) => b.t === 'table' && b.header.includes('Недоимка')), 'раздел обязательных платежей');
+assert.ok(cl.some((b) => b.text === 'IV. Сведения о должниках гражданина'));
+const inv = render(R.templates.find((t) => t.id === 'property_inventory'), vf);
+assert.ok(inv.some((b) => b.t === 'table' && b.header[2] === 'Идентификационный номер'));
+assert.ok(inv.filter((b) => b.text === 'Отсутствуют.').length >= 2, 'пустые разделы помечены');
 console.log('OK: логика мини-приложения работает');

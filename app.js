@@ -9,6 +9,9 @@ import { loadState, saveState, wipe } from './storage.js';
 // Юристы ООО «Арбитръ» — оператора сервиса (сложные случаи — отдельная платная услуга).
 // max — ссылка на чат ООО «Арбитръ» в MAX вида https://max.ru/<имя>, если появится.
 const PARTNER = { name: 'ООО «Арбитръ»', site: 'https://arbitr55.pro', max: '' };
+// Ключ DaData (бесплатный тариф, dadata.ru → Личный кабинет → API) для заполнения кредитора по ИНН из ЕГРЮЛ.
+// Пусто — кнопка «Заполнить по ИНН» не показывается. Передаётся только ИНН кредитора, данных пользователя нет.
+const DADATA_TOKEN = '';
 // Какие шаблоны доступны на каждом пути
 const PAPERS = {
   court: ['court_application', 'creditors_list', 'property_inventory', 'deposit_motion', 'attach_motion', 'manager_letter'],
@@ -85,7 +88,8 @@ const rulesLine = () => `<p class="muted center">Правила актуальн
 const go = (hash) => { location.hash = hash; };
 const back = () => (history.length > 1 ? history.back() : go('#/'));
 
-function route() {
+function route(keepScroll = false) {
+  const y = window.scrollY;
   const [, name = '', arg] = location.hash.replace(/^#/, '').split('/');
   const open = ['welcome', 'legal'];
   if (!S.consent && !open.includes(name)) return go('#/welcome');
@@ -93,7 +97,7 @@ function route() {
   const screen = screens[name] ?? home;
   const top = name && name !== 'welcome' && !inMax ? '<div class="top"><button class="back" data-back>‹ Назад</button></div>' : '';
   app.innerHTML = top + screen(arg);
-  window.scrollTo(0, 0);
+  window.scrollTo(0, keepScroll ? y : 0);
   bridge(() => (name && name !== 'welcome' ? WA.BackButton.show() : WA.BackButton.hide()));
   if (name === 'step') updateStepErrors(arg);
 }
@@ -406,7 +410,7 @@ function form() {
     <button class="btn" data-go="#/papers">К документам</button>`;
 }
 
-function fieldHtml(f, value, attrs) {
+function fieldHtml(f, value, attrs, listIndex) {
   const err = f.check && value ? CHECKS[f.check](value) : null;
   const control = f.select
     ? `<select ${attrs} aria-label="${h(f.l)}">${f.select.map(([v, l]) => `<option value="${v}" ${String(value ?? f.select[0][0]) === v ? 'selected' : ''}>${h(l)}</option>`).join('')}</select>`
@@ -414,7 +418,8 @@ function fieldHtml(f, value, attrs) {
   return `<label class="field"><span>${h(f.l)}</span>${control}
     ${f.check ? `<div class="err" data-err>${h(err ?? '')}</div>` : ''}
     ${f.hint ? `<span class="muted">${h(f.hint)}</span>` : ''}
-    ${f.contact && inMax ? '<button class="btn ghost small" data-contact>Взять номер из MAX</button>' : ''}</label>`;
+    ${f.contact && inMax ? '<button class="btn ghost small" data-contact>Взять номер из MAX</button>' : ''}
+    ${f.innFill && DADATA_TOKEN ? `<button class="btn ghost small" data-inn-fill="${listIndex}">Заполнить название и адрес по ИНН</button>` : ''}</label>`;
 }
 
 function step(id) {
@@ -432,7 +437,7 @@ function step(id) {
     ${(p[L.key] ?? []).map((item, i) => `
       <div class="card">
         <h2>${h(L.item)} ${i + 1}</h2>
-        ${L.fields.map((f) => fieldHtml(f, item[f.k], `data-list="${L.key}" data-i="${i}" data-k="${f.k}" data-check="${f.check ?? ''}"`)).join('')}
+        ${L.fields.filter((f) => !f.when || f.when.includes(item.kind ?? 'realty')).map((f) => fieldHtml(f, item[f.k], `data-list="${L.key}" data-i="${i}" data-k="${f.k}" data-check="${f.check ?? ''}"`, i)).join('')}
         <button class="btn ghost" data-list-del="${L.key}" data-i="${i}">Удалить</button>
       </div>`).join('')}
     <button class="btn secondary" data-list-add="${L.key}">${h(L.add)}</button>`).join('');
@@ -719,6 +724,23 @@ app.addEventListener('click', async (e) => {
     S.profile.circumstances = text; save(); route();
     return document.querySelector('[data-field="circumstances"]')?.scrollIntoView({ block: 'center' });
   }
+  if (d.innFill !== undefined) {
+    const c = S.profile.creditors[Number(d.innFill)];
+    const inn = String(c?.inn ?? '').replace(/\D/g, '');
+    if (checkCreditorInn(inn) || !inn) return toast('Сначала введите правильный ИНН');
+    try {
+      const res = await fetch('https://suggestions.dadata.ru/suggestions/api/4_1/rs/findById/party', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json', Authorization: `Token ${DADATA_TOKEN}` },
+        body: JSON.stringify({ query: inn }),
+      });
+      const org = (await res.json()).suggestions?.[0];
+      if (!org) return toast('По этому ИНН ничего не найдено');
+      c.name = org.value; c.address = org.data?.address?.value ?? c.address;
+      save(); route(true); toast('Заполнено из ЕГРЮЛ — проверьте');
+    } catch { toast('Не удалось получить данные, заполните вручную'); }
+    return;
+  }
   if ('contact' in d) {
     const phone = await requestPhone();
     if (phone) { S.profile.phone = phone; save(); route(); }
@@ -794,6 +816,7 @@ app.addEventListener('input', (e) => {
   } else if (d.list) {
     S.profile[d.list][Number(d.i)][d.k] = el.value;
     showErr();
+    if (d.k === 'kind') { save(); return route(true); } // набор полей зависит от вида имущества
   } else if ('since' in d) {
     S.since = el.value;
   } else if (d.lead) {
@@ -840,6 +863,6 @@ function waitForBridge(timeout = 3000) {
   S.profile ??= {};
   applyZoom();
   bridge(() => WA.BackButton.onClick(back));
-  window.addEventListener('hashchange', route);
+  window.addEventListener('hashchange', () => route());
   route();
 })();
