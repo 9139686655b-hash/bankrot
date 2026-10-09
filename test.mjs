@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { answer, buildView, checkInn, checkSnils, checklist, courtByAddress, diagnose, freshness, missing, render, stepErrors } from './logic.js';
 
-globalThis.fetch = async (u) => ({ json: async () => JSON.parse(readFileSync(new URL(u, import.meta.url))) });
+globalThis.fetch = async (u) => ({ json: async () => JSON.parse(readFileSync(new URL(u.split('?')[0], import.meta.url))) });
 const { loadRules } = await import('./logic.js');
 const R = await loadRules('./data/');
 

@@ -5,10 +5,11 @@ import petrovich from './vendor/petrovich.mjs';
 
 Mustache.escape = (t) => t; // экранирование делаем сами при выводе в HTML
 
+// Версия из index.html: код и данные загружаются согласованно, без смешения старого кэша с новым.
 export async function loadRules(base = './data/') {
   const names = ['rules', 'diagnosis', 'documents', 'timeline', 'knowledge', 'courts', 'templates', 'legal'];
   const [rules, diagnosis, documents, timeline, knowledge, courts, templates, legal] = await Promise.all(
-    names.map((n) => fetch(`${base}${n}.json`, { cache: 'no-cache' }).then((r) => r.json())),
+    names.map((n) => fetch(`${base}${n}.json?v=${globalThis.APP_VERSION ?? ''}`).then((r) => r.json())),
   );
   return {
     version: rules.version,
