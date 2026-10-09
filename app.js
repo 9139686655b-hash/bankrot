@@ -528,7 +528,7 @@ function paper(id) {
   const items = ['Я проверил(а) ФИО, даты и номера документов', 'Все кредиторы указаны, суммы сверены со справками и кредитной историей', 'Имущество, счета и сделки указаны честно и полностью', 'Я понимаю: это шаблон, за содержание и подачу отвечаю я'];
   const ready = !miss.length && !circNotReady && items.every((_, i) => checks[i]);
   const html = blocks.map((b) => (b.t === 'table'
-    ? `<table><tr>${b.header.map((x) => `<th>${h(x)}</th>`).join('')}</tr>${b.rows.map((r) => `<tr>${r.map((c) => `<td>${h(c)}</td>`).join('')}</tr>`).join('')}</table>`
+    ? `<div class="tablewrap"><table><tr>${b.header.map((x) => `<th>${h(x)}</th>`).join('')}</tr>${b.rows.map((r) => `<tr>${r.map((c) => `<td>${h(c)}</td>`).join('')}</tr>`).join('')}</table></div>`
     : `<p class="${b.t}">${h(b.text)}</p>`)).join('');
   return `
     <h1>${h(t.title)}</h1>

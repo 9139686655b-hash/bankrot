@@ -146,3 +146,7 @@ details.card summary .muted { font-weight: 400; }
 .brand img { width: 44px; height: 64px; object-fit: contain; background: #fff; border-radius: 10px; padding: 4px 6px; box-sizing: content-box; border: 1px solid var(--border); }
 .brand p { margin: 0; font-weight: 600; font-size: 15px; }
 button.link { background: none; border: 0; padding: 0; font: inherit; color: var(--primary); text-decoration: underline; cursor: pointer; }
+.paper .tablewrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 6px 0 12px; }
+.paper .tablewrap table { margin: 0; min-width: 520px; }
+.paper { overflow-wrap: anywhere; }
+@media print { .paper .tablewrap { overflow: visible; } .paper .tablewrap table { min-width: 0; } }
