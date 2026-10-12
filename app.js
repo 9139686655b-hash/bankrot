@@ -40,6 +40,38 @@ const bridge = (fn) => {
 };
 const haptic = () => bridge(() => WA.HapticFeedback.selectionChanged());
 
+// ---------------- Звук и отклик нажатий ----------------
+
+let audioCtx = null;
+/** Короткий тихий щелчок, синтезированный в браузере (без звуковых файлов). */
+function clickSound() {
+  if (S?.sound === false) return;
+  try {
+    audioCtx ??= new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const t = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(1600, t);
+    osc.frequency.exponentialRampToValueAtTime(500, t + 0.035);
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(0.18, t + 0.004);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start(t);
+    osc.stop(t + 0.06);
+  } catch { /* звук недоступен — ничего страшного */ }
+}
+
+// Щелчок и лёгкая вибрация (в MAX) в момент касания — так нажатие ощущается сразу
+document.addEventListener('pointerdown', (e) => {
+  const el = e.target.closest('button:not(:disabled), summary, .option, input[type=checkbox]');
+  if (!el) return;
+  clickSound();
+  bridge(() => WA.HapticFeedback.impactOccurred('light'));
+}, { capture: true, passive: true });
+
 /** Своё окно подтверждения: window.confirm во встроенных браузерах мессенджеров может не работать. */
 function ask(text, okText = 'Да') {
   return new Promise((resolve) => {
@@ -88,8 +120,11 @@ const rulesLine = () => `<p class="muted center">Правила актуальн
 const go = (hash) => { location.hash = hash; };
 const back = () => (history.length > 1 ? history.back() : go('#/'));
 
+let lastHash = null;
 function route(keepScroll = false) {
   const y = window.scrollY;
+  const changed = location.hash !== lastHash;
+  lastHash = location.hash;
   const [, name = '', arg] = location.hash.replace(/^#/, '').split('/');
   const open = ['welcome', 'legal'];
   if (!S.consent && !open.includes(name)) return go('#/welcome');
@@ -98,6 +133,12 @@ function route(keepScroll = false) {
   const top = name && name !== 'welcome' && !inMax ? '<div class="top"><button class="back" data-back>‹ Назад</button></div>' : '';
   app.innerHTML = top + screen(arg);
   window.scrollTo(0, keepScroll ? y : 0);
+  // Плавное появление — только при переходе на другой экран, а не при каждой отметке
+  if (changed && !keepScroll) {
+    app.classList.remove('enter');
+    void app.offsetWidth; // перезапуск анимации
+    app.classList.add('enter');
+  }
   bridge(() => (name && name !== 'welcome' ? WA.BackButton.show() : WA.BackButton.hide()));
   if (name === 'step') updateStepErrors(arg);
 }
@@ -611,6 +652,10 @@ function settings() {
       <p class="muted">Тёмная тема включается вместе с темой телефона.</p>
     </div>
     <div class="card">
+      <h2>Звук нажатий</h2>
+      <button class="option" role="switch" aria-checked="${S.sound !== false}" data-sound><span class="mark"></span><span>Тихий щелчок при нажатии на кнопки</span></button>
+    </div>
+    <div class="card">
       <h2>Где мои данные</h2>
       <p>Ответы теста, отметки по документам и анкета хранятся только на этом устройстве${inMax ? ' в хранилище MAX (анкета — в защищённом)' : ' в браузере'}. На сервер они не отправляются.</p>
       <button class="btn secondary" data-wipe>Удалить все мои данные</button>
@@ -779,6 +824,7 @@ app.addEventListener('click', async (e) => {
   }
 
   // настройки
+  if ('sound' in d) { S.sound = S.sound === false; save(); if (S.sound) clickSound(); return route(true); }
   if (d.zoom) { S.zoom = Number(d.zoom); applyZoom(); save(); return route(); }
   if ('wipe' in d) {
     if (!(await ask('Удалить ответы теста, отметки и анкету с этого устройства?', 'Удалить'))) return;
